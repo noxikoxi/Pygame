@@ -43,6 +43,23 @@ L = [['.x..',
       '....',
       '....']]
 
+J = [['.x..',
+      '.x..',
+      'xx.',
+      '....'],
+     ['x...',
+      'xxx.',
+      '....',
+      '....'],
+     ['.xx.',
+      '.x..',
+      '.x..',
+      '....'],
+     ['....',
+      'xxx.',
+      '..x.',
+      '....']]
+
 T = [['.x..',
       'xxx.',
       '....',
@@ -60,7 +77,30 @@ T = [['.x..',
       '.x..',
       '....']]
 
-shapes = [_, L, T]
+Z = [['xx..',
+      '.xx.',
+      '....',
+      '....'],
+     ['..x.',
+      '.xx.',
+      '.x..',
+      '....']]
+
+S = [['..xx',
+      '.xx.',
+      '....',
+      '....'],
+     ['.x..',
+      '.xx.',
+      '..x.',
+      '....']]
+
+o = [['....',
+      '.xx.',
+      '.xx.',
+      '....']]
+
+shapes = [_, L, J, T, Z, S, o]
 
 LIGHT_GRAY = (128, 128, 128)
 
@@ -145,7 +185,8 @@ class Game:
         for i, row in enumerate(block_positions):
             for j, column in enumerate(row):
                 if block_positions[i][j]:
-                    box = pygame.Rect(self.next_block.x+j * cell_size, self.next_block.y+i * cell_size, cell_size-1, cell_size-1)
+                    box = pygame.Rect(self.next_block.x + j * cell_size, self.next_block.y + i * cell_size,
+                                      cell_size - 1, cell_size - 1)
                     pygame.draw.rect(screen, self.next_block.color, box)
 
     def create_block(self):
@@ -176,9 +217,9 @@ class Game:
         while row > 0:
             positive = 0
             for y in range(self.sc_width):
-                if self.board[row-1][y]:
+                if self.board[row - 1][y]:
                     positive += 1
-                self.board[row][y], self.board[row-1][y] = self.board[row-1][y], self.board[row][y]  # Swap values
+                self.board[row][y], self.board[row - 1][y] = self.board[row - 1][y], self.board[row][y]  # Swap values
             if positive == 0:
                 break
             row -= 1
@@ -203,8 +244,8 @@ class Game:
 
     def update(self):
         self.current_block.y += self.block_move
-        self.check_collisions()
         self.hit_ground()
+        self.check_collisions()
         self.check_row()
         self.check_lose()
 
@@ -221,11 +262,11 @@ class Game:
 
     def hit_ground(self):
         max_y = check_matrix_max_y(self.convert_shape_format()) + self.current_block.y
-        if max_y >= self.sc_height-1:
+        if max_y >= self.sc_height:
             real_positions = self.real_block_positions()
             self.block_move = 0
             for pos in real_positions:
-                self.board[pos[1]][pos[0]] = True
+                self.board[pos[1] - 1][pos[0]] = True
 
             del self.current_block
             self.pass_next_block()
@@ -310,7 +351,7 @@ def main():
                     real_end = game.current_block.x + check_matrix_max_x(positions)
                     possible_move = True
 
-                    if real_end < game.sc_width-1:
+                    if real_end < game.sc_width - 1:
                         real_pos = game.real_block_positions()
 
                         most_to_the_right = []
@@ -319,7 +360,7 @@ def main():
                                 most_to_the_right.append((pos[0], pos[1]))
 
                         for pos in most_to_the_right:
-                            if game.board[pos[1]][pos[0]+1]:
+                            if game.board[pos[1]][pos[0] + 1]:
                                 possible_move = False
 
                     if (real_end < game.sc_width - 1) and possible_move:
@@ -332,7 +373,7 @@ def main():
                     blocked_rotation = False
 
                     # Check if possible to rotate between locked positions
-                    if next_rotation_real_begin > 0 and next_rotation_real_end < game.sc_width -1:
+                    if next_rotation_real_begin > 0 and next_rotation_real_end < game.sc_width - 1:
                         real_pos_block = game.real_block_positions(next_rotation=True)
                         for pos in real_pos_block:
                             if game.board[pos[1]][pos[0]]:
