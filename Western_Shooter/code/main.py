@@ -89,12 +89,12 @@ class Game:
 					create_bullet=self.create_bullet)
 
 			if obj.name == 'Coffin':
-				Coffin((obj.x, obj.y), [self.all_sprites, self.monsters], PATHS['coffin'], self.obstacles, self.player)
+				Coffin((obj.x, obj.y), (self.all_sprites, self.monsters), PATHS['coffin'], self.obstacles, self.player)
 
 			if obj.name == 'Cactus':
 				Cactus(
 					pos=(obj.x, obj.y),
-					groups=[self.all_sprites, self.monsters],
+					groups=(self.all_sprites, self.monsters),
 					path=PATHS['cactus'],
 					collision_sprites=self.obstacles,
 					player=self.player,

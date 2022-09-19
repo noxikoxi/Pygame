@@ -86,6 +86,7 @@ class Coffin(Entity, Monster):
 
         self.move(dt)
         self.animate(dt)
+        self.blink()
 
         self.check_dead()
         self.vulnerability_timer()
