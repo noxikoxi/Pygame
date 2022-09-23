@@ -1,35 +1,24 @@
+import sys
+
 import pygame
-from settings import *
 from pygame.math import Vector2 as Vector
-from os import walk
+from entity import Entity
 
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, path, collision_sprites):
-        super().__init__(groups)
-        self.import_assets(path)
-
-        self.status = 'right'
-        self.frame_index = 0
-
-        self.image = self.animations[self.status][self.frame_index]
-        self.rect = self.image.get_rect(topleft=pos)
-        self.z = LAYERS['Level']
-
-        # float based movement
-        self.direction = Vector()
-        self.pos = Vector(self.rect.topleft)
-        self.speed = 400
+class Player(Entity):
+    def __init__(self, pos, groups, path, collision_sprites, shoot):
+        super().__init__(pos, path, groups, shoot)
 
         # collision
-        self.old_rect = self.rect.copy()
         self.collision_sprites = collision_sprites
 
         # vertical movement
         self.gravity = 15
-        self.jump_speed = 1400
+        self.jump_speed = 1000
         self.on_floor = False
-        self.duck = False
+        self.moving_floor = None
+
+        self.health = 10
 
     def get_status(self):
         # idle
@@ -38,7 +27,6 @@ class Player(pygame.sprite.Sprite):
         # jump
         if not self.on_floor and self.direction.y != 0:
             self.status = self.status.split('_')[0] + '_jump'
-
         # duck
         if self.on_floor and self.duck:
             self.status = self.status.split('_')[0] + '_duck'
@@ -50,26 +38,8 @@ class Player(pygame.sprite.Sprite):
             if sprite.rect.colliderect(bottom_rect):
                 if self.direction.y > 0:
                     self.on_floor = True
-
-    def import_assets(self, path):
-        self.animations = {}
-
-        for index, folder in enumerate(walk(path)):
-            if index == 0:
-                for file_name in folder[1]:
-                    self.animations[file_name] = []
-            else:
-                for file_name in sorted(folder[2], key=lambda string: int(string.split('.')[0])):
-                    status = folder[0].split('\\')[1]
-                    path = folder[0].replace('\\', '/') + '/' + file_name
-                    self.animations[status].append(pygame.image.load(path).convert_alpha())
-
-    def animate(self, dt):
-        self.frame_index += 7 * dt
-        if self.frame_index >= len(self.animations[self.status]):
-            self.frame_index = 0
-
-        self.image = self.animations[self.status][int(self.frame_index)]
+                if hasattr(sprite, 'direction'):
+                    self.moving_floor = sprite
 
     def collision(self, direction):
         for sprite in self.collision_sprites.sprites():
@@ -120,6 +90,17 @@ class Player(pygame.sprite.Sprite):
         else:
             self.duck = False
 
+        if keys[pygame.K_SPACE]:
+            if self.can_shoot:
+                direction = Vector(1, 0) if self.status.split('_')[0] == 'right' else Vector(-1, 0)
+                pos = self.rect.center + direction * 60
+                y_offset = Vector(0, -16) if not self.duck else Vector(0, 10)
+                self.shoot(pos + y_offset, direction, self)
+
+                self.can_shoot = False
+                self.shoot_time = pygame.time.get_ticks()
+                self.shoot_sound.play()
+
     def move(self, dt):
         if self.duck and self.on_floor:
             self.direction.x = 0
@@ -132,8 +113,22 @@ class Player(pygame.sprite.Sprite):
         # Vertical movement
         self.direction.y += self.gravity
         self.pos.y += self.direction.y * dt
+
+        if self.moving_floor and self.moving_floor.direction.y > 0 and self.direction.y > 0:
+            self.direction.y = 0
+            self.rect.bottom = self.moving_floor.rect.top
+            self.pos.y = self.rect.y
+            self.on_floor = True
+
         self.rect.y = round(self.pos.y)
         self.collision('vertical')
+
+        self.moving_floor = None
+
+    def check_death(self):
+        if self.health <= 0:
+            pygame.quit()
+            sys.exit()
 
     def update(self, dt):
         self.old_rect = self.rect.copy()
@@ -142,4 +137,13 @@ class Player(pygame.sprite.Sprite):
         self.get_status()
         self.move(dt)
         self.check_contact()
+
         self.animate(dt)
+        self.blink()
+
+        # timer
+        self.shoot_timer()
+        self.invul_timer()
+
+        # death
+        self.check_death()
